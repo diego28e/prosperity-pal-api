@@ -138,8 +138,32 @@
     </div>
   </div>
 
+  <!-- Edit Modal (reuse this for both income and expense) -->
+  <div id="edit-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="close-edit-modal">&times;</span>
+      <form id="edit-form" method="POST">
+        <div class="amountAndDate">
+          <div class="dataBlock">
+            <label for="amount">Amount:</label>
+            <input id="edit-amount" type="text" name="amount" required />
+          </div>
+          <div class="dataBlock">
+            <label for="date">Date:</label>
+            <input id="edit-date" type="date" name="date" required />
+          </div>
+        </div>
+        <div class="dataBlock">
+          <label for="tag">Name:</label>
+          <input id="edit-tag" type="text" name="tag_name" required />
+        </div>
+        <button type="submit">Save Changes</button>
+      </form>
+    </div>
+  </div>
+
   <div class="dataDescriptionContainer">
-    <!--Display list of income-->
+    <!-- Display list of income -->
     <div id="income-list" class="income-list">
       <h3 class="list-name">Incomes: $<%= totalIncome.toLocaleString() %></h3>
       <ul>
@@ -157,6 +181,18 @@
             </span>
           </div>
           <span class="editDelete">
+            <!-- Edit Button -->
+            <button
+              class="editButton"
+              data-id="<%= income.id %>"
+              data-amount="<%= income.amount %>"
+              data-date="<%= income.date %>"
+              data-tag="<%= income.tag_name %>"
+            >
+              <i class="fa-solid fa-pen"></i>
+            </button>
+
+            <!-- Delete Button -->
             <form action="/income/delete/<%= income.id %>" method="POST">
               <button type="submit" class="deleteButton">
                 <i class="fa-solid fa-trash"></i>
@@ -167,6 +203,7 @@
         <% }); %>
       </ul>
     </div>
+
     <!-- Display the list of expenses -->
     <div id="expense-list" class="expense-list">
       <h3 class="list-name">
@@ -187,6 +224,18 @@
             </span>
           </div>
           <span class="editDelete">
+            <!-- Edit Button -->
+            <button
+              class="editButton"
+              data-id="<%= expense.id %>"
+              data-amount="<%= expense.amount %>"
+              data-date="<%= expense.date %>"
+              data-tag="<%= expense.tag_name %>"
+            >
+              <i class="fa-solid fa-pen"></i>
+            </button>
+
+            <!-- Delete Button -->
             <form action="/expense/delete/<%= expense.id %>" method="POST">
               <button type="submit" class="deleteButton">
                 <i class="fa-solid fa-trash"></i>
@@ -251,6 +300,16 @@
   const openExpenseModal = document.getElementById("open-expense-modal");
   const closeIncomeModal = document.getElementById("close-income-modal");
   const closeExpenseModal = document.getElementById("close-expense-modal");
+  // Modal functionality
+  const editModal = document.getElementById("edit-modal");
+  const closeEditModal = document.getElementById("close-edit-modal");
+
+  const editAmountInput = document.getElementById("edit-amount");
+  const editDateInput = document.getElementById("edit-date");
+  const editTagInput = document.getElementById("edit-tag");
+
+  let currentEditId = null;
+  let currentEditType = null; // 'income' or 'expense'
 
   openIncomeModal.onclick = function () {
     incomeModal.style.display = "flex";
@@ -276,4 +335,61 @@
       expenseModal.style.display = "none";
     }
   };
+
+  document.querySelectorAll(".editButton").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      currentEditId = button.getAttribute("data-id");
+      currentEditType = button.closest("ul").id.includes("income")
+        ? "income"
+        : "expense";
+
+      // Populate the form with existing data
+      editAmountInput.value = button.getAttribute("data-amount");
+      editDateInput.value = button.getAttribute("data-date").slice(0, 10); // Format to yyyy-mm-dd
+      editTagInput.value = button.getAttribute("data-tag");
+
+      // Display the modal
+      editModal.style.display = "flex";
+    });
+  });
+
+  closeEditModal.onclick = function () {
+    editModal.style.display = "none";
+  };
+
+  window.onclick = function (event) {
+    if (event.target == editModal) {
+      editModal.style.display = "none";
+    }
+  };
+
+  // Submit the edit form with PATCH request
+  document
+    .getElementById("edit-form")
+    .addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const amount = editAmountInput.value;
+      const date = editDateInput.value;
+      const tag_name = editTagInput.value;
+
+      const response = await fetch(
+        `/${currentEditType}/edit/${currentEditId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ amount, date, tag_name }),
+        }
+      );
+
+      console.log("PATCH request sent, response status:", response.status);
+
+      if (response.ok) {
+        window.location.reload();
+      } else {
+        alert("Error updating entry");
+      }
+    });
 </script>
